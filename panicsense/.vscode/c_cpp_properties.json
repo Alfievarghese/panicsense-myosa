@@ -1,0 +1,58 @@
+{
+    "configurations": [
+        {
+            "name": "esp32:esp32:esp32",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "C:\\Users\\alfie\\AppData\\Local\\Temp\\vs-arduino-sketch-xsxKAe\\panicsense",
+                "C:\\Users\\alfie\\AppData\\Local\\Arduino15\\packages\\esp32\\tools\\esp32-libs\\3.3.11/qio_qspi/include",
+                "C:\\Users\\alfie\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.3.11\\cores\\esp32",
+                "C:\\Users\\alfie\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.3.11\\variants\\esp32",
+                "c:\\Users\\alfie\\.arduinoIDE\\libraries\\Adafruit_BMP085_Unified",
+                "c:\\Users\\alfie\\.arduinoIDE\\libraries\\Adafruit_Unified_Sensor",
+                "C:\\Users\\alfie\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.3.11\\libraries\\Wire\\src",
+                "c:\\Users\\alfie\\.arduinoIDE\\libraries\\Adafruit_GFX_Library",
+                "c:\\Users\\alfie\\.arduinoIDE\\libraries\\Adafruit_BusIO",
+                "C:\\Users\\alfie\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.3.11\\libraries\\SPI\\src",
+                "c:\\Users\\alfie\\.arduinoIDE\\libraries\\Adafruit_MPU6050",
+                "c:\\Users\\alfie\\.arduinoIDE\\libraries\\Adafruit_SSD1306",
+                "c:\\Users\\alfie\\.arduinoIDE\\libraries\\SparkFun_APDS9960_RGB_and_Gesture_Sensor\\src",
+                "C:\\Users\\alfie\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.3.11\\libraries\\WiFi\\src",
+                "C:\\Users\\alfie\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.3.11\\libraries\\Network\\src",
+                "C:\\Users\\alfie\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.3.11\\libraries\\HTTPClient\\src",
+                "C:\\Users\\alfie\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.3.11\\libraries\\NetworkClientSecure\\src",
+                "C:\\Users\\alfie\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.3.11\\libraries\\SPIFFS\\src",
+                "C:\\Users\\alfie\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.3.11\\libraries\\FS\\src",
+                "c:\\Users\\alfie\\.arduinoIDE\\libraries\\NTPClient",
+                "c:\\Users\\alfie\\.arduinoIDE\\libraries\\ArduinoJson\\src",
+                "C:\\Users\\alfie\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.3.11\\libraries\\BLE\\src",
+                "C:\\Users\\alfie\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.3.11\\libraries\\Preferences\\src",
+                "C:\\Users\\alfie\\AppData\\Local\\Arduino15\\packages\\esp32\\tools\\esp-x32\\2601\\xtensa-esp32-elf\\include"
+            ],
+            "forcedInclude": [
+                "C:\\Users\\alfie\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.3.11\\cores\\esp32\\Arduino.h"
+            ],
+            "defines": [
+                "F_CPU=240000000L",
+                "ARDUINO=10607",
+                "ARDUINO_ESP32_DEV",
+                "ARDUINO_ARCH_ESP32",
+                "ARDUINO_BOARD=\"ESP32_DEV\"",
+                "ARDUINO_VARIANT=\"esp32\"",
+                "ARDUINO_PARTITION_default",
+                "ARDUINO_HOST_OS=\"windows\"",
+                "ARDUINO_FQBN=\"esp32:esp32:esp32\"",
+                "ESP32=ESP32",
+                "CORE_DEBUG_LEVEL=0",
+                "ARDUINO_RUNNING_CORE=1",
+                "ARDUINO_EVENT_RUNNING_CORE=1",
+                "ARDUINO_USB_CDC_ON_BOOT=0"
+            ],
+            "compilerPath": "C:\\Users\\alfie\\AppData\\Local\\Arduino15\\packages\\esp32\\tools\\esp-x32\\2601/bin/xtensa-esp32-elf-g++",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "gcc-x64"
+        }
+    ],
+    "version": 4
+}
