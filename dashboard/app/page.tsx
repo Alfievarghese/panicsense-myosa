@@ -61,10 +61,6 @@ function ECGLine({ className = "" }: { className?: string }) {
   );
 }
 
-/* ─── Stat Card ────────────────────────────────────────── */
-function StatCard({
-  label,
-  value,
 interface StatCardProps {
   label: string;
   value: string;
