@@ -231,6 +231,12 @@ PulseResult measurePulse(SparkFun_APDS9960 &apds, float *bpmOut, PulseCallback c
   Serial.print(F(", delta="));
   Serial.println(maxVal - minVal, 1);
 
+  // ─── Phase 2.5: Ensure finger is actually present ─────
+  if (maxVal < (float)PULSE_MIN_PROXIMITY) {
+    Serial.println(F("[PULSE] QUALITY_FAIL: no finger detected (max proximity too low)"));
+    return PULSE_QUALITY_FAIL;
+  }
+
   // ─── Phase 3: Detect peaks ──────────────────────────
   const int maxPeaks = 50; // more than enough for 10s at 200 BPM
   int peakIndices[50];

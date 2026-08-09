@@ -74,6 +74,7 @@ const int   PULSE_MIN_PEAKS          = 3;    // min peaks in 10s for valid signa
 const int   PULSE_MIN_BPM            = 40;   // quality gate lower bound
 const int   PULSE_MAX_BPM            = 200;  // quality gate upper bound
 const int   PULSE_MAX_RETRIES        = 1;    // retry once on quality fail
+const int   PULSE_MIN_PROXIMITY      = 100;  // minimum proximity value to ensure a finger is actually on the sensor
 
 // ─── Episode Confirmation ──────────────────────────────
 const int   ELEVATED_BPM           = 60;    // BPM threshold to confirm episode (lowered for testing — raise to 100 for production)
