@@ -2,138 +2,128 @@
 
 🕒 August 2026 — PanicSense
 
-A wrist-worn panic attack detection and guided de-escalation device built on the MYOSA Mini IoT Kit.
+A wrist-worn device that tries to catch a panic attack while it's happening, not after.
 
 ---
 
 ## Overview
 
-PanicSense is a wearable IoT device that passively detects the physical signature of a panic attack and responds in real time — without requiring the wearer to press a button or reach for a phone.
+The idea started from a simple frustration: every panic-attack wearable I looked at assumes you can still use a phone when you're mid-episode. You can't, really. Your hands are shaking, your thoughts are somewhere else entirely, and the last thing you want to do is unlock a screen and tap through an app.
 
-The device runs on the MYOSA Mini IoT Kit (ESP32) and uses a five-state firmware state machine to continuously monitor hand tremor via the MPU6050 accelerometer. When sustained tremor is detected, the APDS9960 sensor is repurposed as a basic photoplethysmography (PPG) pulse sensor to confirm an elevated heart rate as a second independent signal. Only when both signals agree does the device act — eliminating false positives from everyday motion.
+PanicSense is built on the MYOSA Mini IoT Kit and tries to skip that step. The MPU6050 watches for sustained hand tremor. If it sees something that isn't just a bump or a shaky bus ride, the device asks you to rest a finger on the APDS9960 sensor for a few seconds — which, admittedly, isn't a sensor built for this at all. It's meant for gestures and ambient light. We're using its IR LED and photodiode the same way a smartwatch camera reads a pulse, just repurposed on hardware that was never designed for it.
 
-Once an episode is confirmed, the OLED display launches a guided box-breathing animation to help the wearer de-escalate. Simultaneously, an alert is dispatched over WiFi to a real-time React dashboard, where episode data including barometric pressure and temperature from the BMP180 are logged and visualized. An active buzzer provides haptic-style audio confirmation that the alert was sent.
+Only when both signals agree — tremor and an elevated pulse — does anything happen. That was a deliberate choice after reading how often single-sensor wearables cry wolf over cold hands or a shaky commute. If the pulse reading times out or comes back inconclusive, the device just quietly resets. No alert, no drama.
 
-The core safety path works fully on-device with no cloud dependency. A Gemini AI layer optionally enriches the alert message to the trusted contact when internet connectivity is available.
+When it does confirm an episode, the OLED switches into a guided breathing pattern, the buzzer gives three short beeps so you know something happened without having to look, and an alert goes out over WiFi to a small dashboard we built alongside it. A BMP180 tags each episode with pressure and temperature, mostly because there's real research linking pressure drops to anxiety, and it felt worth logging even if we haven't collected enough episodes yet to see a pattern.
 
-**"Detect. Breathe. Alert." — Panic attack detection that works before the wearer can ask for help.**
-
----
-
-## Key Features
-
-- Passive tremor detection using MPU6050 rolling-variance algorithm — no user input required
-- Creative APDS9960 repurposing as a PPG pulse sensor, beyond its documented spec
-- Two-signal confirmation (tremor + pulse) before any alert fires — structural false-positive elimination
-- OLED guided box breathing pacer (4s inhale, 4s hold, 4s exhale, 4s hold — 3 cycles)
-- Real-time React dashboard receiving live episode alerts over WiFi
-- BMP180 barometric pressure and temperature logging per episode
-- BLE fallback alert path if WiFi is unavailable
-- On-device SPIFFS episode storage — up to 50 episodes survive reboot
-- NTP-synced episode timestamps (IST, UTC+5:30)
-- Five-minute cooldown after each episode to prevent alert spam
-- Active buzzer alert confirmation (3 beeps, non-blocking via millis())
-- Fully non-blocking firmware — zero delay() calls in the main loop
+Everything that matters — the breathing pacer, the alert — runs on-device. If WiFi drops, the wearable doesn't just stop working; it falls back to BLE. The Gemini layer that turns raw sensor numbers into a readable message for a trusted contact is a nice-to-have on top, not something the core safety path depends on.
 
 ---
 
-## Demo / Examples
+## What Actually Works Right Now
 
-### Images
+Being honest about where this stands: tremor detection is solid. Shake the MPU6050 hard enough for about 300ms and it reliably kicks into the confirming state — the false-alarm timeout also works, so a random bump doesn't escalate into anything.
 
-![Full Prototype Setup](assets/photo-01-full-setup.jpg)
-*Complete PanicSense prototype — MYOSA motherboard with MPU6050, APDS9960, BMP180, OLED, and buzzer connected via JST daisy chain*
+Pulse confirmation is the rougher edge. The APDS9960 isn't a real PPG sensor, and getting a clean BPM reading depends a lot on finger pressure and how still you hold it. In our testing it sometimes returns 0 BPM instead of a real number, which just means the peak-detection algorithm couldn't find a clean signal that round, not that the pulse was zero. We're treating this as an experimental layer, not something to lean on for accuracy, and we say so plainly instead of pretending it's medical-grade.
 
-![OLED Boot Splash](assets/photo-03-oled-boot.jpg)
-*Boot splash screen — Team MANDI MASALA, IEEE MYOSA 2026*
+---
 
-![OLED Idle Monitoring](assets/photo-02-oled-idle.jpg)
-*IDLE state — PanicSense monitoring with animated heartbeat line*
+## Demo
 
-![Pulse Measurement](assets/photo-06-oled-confirming.jpg)
-*CONFIRMING state — "Measuring pulse..." with progress bar and countdown timer*
-
-![Finger on APDS9960](assets/photo-07-pulse-detection.jpg)
-*Finger placed on APDS9960 sensor window for PPG-based pulse confirmation*
-
-![Breathing Pacer](assets/photo-05-oled-breathing.jpg)
-*EPISODE_ACTIVE state — Guided box breathing pacer, Cycle 1/3, expanding circle animation*
-
-![Alert Sent Cooldown](assets/photo-04-oled-cooldown.jpg)
-*COOLDOWN state — Alert confirmed sent, circular countdown timer, "Stay calm" message*
-
-![Live Dashboard](assets/photo-08-dashboard.jpg)
-*Real-time React dashboard — live episode feed, BPM, temperature, auto-detection status*
+<table>
+<tr>
+<td width="50%">
+<img src="assets/photo-01-full-setup.jpg" width="100%"/>
+<p align="center"><sub>Full setup — MPU6050, APDS9960, BMP180, OLED, and buzzer daisy-chained off the MYOSA motherboard</sub></p>
+</td>
+<td width="50%">
+<img src="assets/photo-03-oled-boot.jpg" width="100%"/>
+<p align="center"><sub>Boot splash — Team MANDI MASALA</sub></p>
+</td>
+</tr>
+<tr>
+<td width="50%">
+<img src="assets/photo-02-oled-idle.jpg" width="100%"/>
+<p align="center"><sub>Idle state, watching for tremor</sub></p>
+</td>
+<td width="50%">
+<img src="assets/photo-06-oled-confirming.jpg" width="100%"/>
+<p align="center"><sub>Confirming — reading pulse, 16 seconds left on the window</sub></p>
+</td>
+</tr>
+<tr>
+<td width="50%">
+<img src="assets/photo-07-pulse-detection.jpg" width="100%"/>
+<p align="center"><sub>Finger placed on the APDS9960 window during pulse confirmation</sub></p>
+</td>
+<td width="50%">
+<img src="assets/photo-05-oled-breathing.jpg" width="100%"/>
+<p align="center"><sub>Breathing pacer, cycle 1 of 3</sub></p>
+</td>
+</tr>
+<tr>
+<td width="50%">
+<img src="assets/photo-04-oled-cooldown.jpg" width="100%"/>
+<p align="center"><sub>Alert sent, five-minute cooldown before it can trigger again</sub></p>
+</td>
+<td width="50%">
+<img src="assets/photo-08-dashboard.jpg" width="100%"/>
+<p align="center"><sub>Live dashboard — episode feed with BPM, duration, and temperature</sub></p>
+</td>
+</tr>
+</table>
 
 ### Video
 
-[Demo Video](panicsense-demo.mp4)
+[panicsense-demo.mp4](panicsense-demo.mp4) — full walkthrough from idle, through tremor and pulse confirmation, to the breathing pacer and alert.
 
 ---
 
-## Features (Detailed)
+## How Each Piece Works
 
-### Tremor Detection (MPU6050)
-The MPU6050 accelerometer is sampled every 100ms using millis()-based non-blocking timing. A rolling window of 10 magnitude readings computes variance across X, Y, and Z axes. Tremor is confirmed only when variance exceeds the threshold (0.15 g²) across 3 consecutive windows (300ms sustained) — filtering out single-spike false triggers from bumps, taps, or typing.
+**Tremor detection.** The MPU6050 is read every 100ms. A rolling window of the last 10 readings feeds a variance calculation across all three axes. Tremor only counts once that variance clears the threshold for three windows in a row — about 300ms of sustained shaking, not a single spike. That one change cut out almost all the false triggers we were getting early on from just tapping the desk near the board.
 
-### Pulse Confirmation — Creative APDS9960 Repurposing
-The APDS9960 is marketed as a gesture, proximity, and ambient light sensor. PanicSense repurposes its onboard IR LED and photodiode as a basic PPG sensor — the same physical principle used in smartwatch heart rate monitors, but applied to a sensor never designed for biometric sensing. When the wearer places a finger over the sensor window, the proximity register modulates with the pulse waveform. A peak-detection algorithm running over 500 samples extracts BPM. This creative platform exploitation beyond documented spec is central to the MYOSA judging rubric.
+**Pulse confirmation.** This is the part I keep going back to. The APDS9960's proximity register was never built to read a pulse, but a finger pressed over its IR LED modulates the returned signal in roughly the same way a phone camera flash does. We sample that for up to 20 seconds, run it through a peak detector, and estimate BPM from the interval between peaks. It's noisy. It works often enough to be useful as a confirmation layer, not often enough to trust on its own, which is exactly why it's paired with tremor rather than standing alone.
 
-### Two-Signal Confirmation
-An alert fires only when tremor AND elevated pulse (BPM > 100) both confirm simultaneously, or when the wearer manually swipes the APDS9960 gesture sensor as an instant SOS override. No single-sensor false positive can trigger an alert. This is a structural, not threshold-based, solution to the false-alarm problem.
+**Manual override.** If someone's already aware something's wrong and just wants to trigger the alert directly, a swipe over the same APDS9960 in gesture mode does it instantly, skipping the confirmation window entirely.
 
-### OLED Guided Breathing Pacer
-Once an episode is confirmed, the OLED transitions to a full-screen box-breathing animation: expanding and contracting circle with INHALE / HOLD / EXHALE / HOLD labels, a stick figure visual, and a cycle progress indicator (Cycle 1/3, 2/3, 3/3). Three complete cycles run in approximately 48 seconds.
+**Breathing pacer.** Once an episode is confirmed, the OLED runs three cycles of box breathing — four seconds each for inhale, hold, exhale, hold. A small circle expands and contracts with each phase so it's something to actually follow, not just text on a screen.
 
-### WiFi Alert and React Dashboard
-After breathing completes, the ESP32 HTTP POSTs a JSON payload to the React dashboard containing episode timestamp (NTP-synced), BPM estimate, tremor duration, barometric pressure, and temperature. The dashboard displays a live episode feed, running stats, and a real-time waveform graph. BLE advertising runs in parallel as a fallback path.
+**Alert and dashboard.** The ESP32 posts a JSON payload — timestamp, BPM estimate, tremor duration, pressure, temperature — to a small React dashboard over WiFi. If that fails, it retries a few times before falling back to BLE. The dashboard shows a running feed of episodes and a live line that moves whenever new data comes in. It's simple on purpose; there wasn't a lot of time to make it more than that.
 
-### BMP180 Contextual Logging
-The BMP180 barometric pressure sensor logs pressure (hPa) and temperature (°C) at the moment of each episode. Research links barometric pressure drops to increased anxiety and migraine events. The dashboard plots this data against episode history, surfacing personal weather-linked patterns over time.
-
-### SPIFFS On-Device Episode Storage
-Up to 50 episodes are stored in ESP32 SPIFFS flash memory. Episodes persist across reboots and sync to the dashboard on reconnect. Oldest episodes are deleted on overflow in a circular log pattern.
+**Episode logging.** Up to 50 episodes get written to SPIFFS on the device itself, so they survive a reboot and sync up whenever the dashboard reconnects.
 
 ---
 
-## Usage Instructions
+## Setting It Up
 
-1. Connect all four MYOSA sensor boards to the motherboard via JST daisy chain (MPU6050 → APDS9960 → BMP180 → OLED)
-2. Connect buzzer: GND to GND, 5V to VIN, SIG to D26 on the GPIO header
-3. Edit `panicsense/config.h` — set WIFI_SSID, WIFI_PASS, and DASHBOARD_URL
-4. Open `panicsense/panicsense.ino` in Arduino IDE (ESP32 Dev Module, Huge APP 3MB partition)
-5. Install all required libraries (see Requirements)
-6. Upload using BOOT + EN/RESET sequence
-7. Start the React dashboard: `cd dashboard && npm install && npm run dev`
-8. Open Serial Monitor at 115200 baud — confirm all sensors initialize OK
-9. Wear the device on the wrist. Shake the MPU6050 to simulate tremor, then place finger on APDS9960 to confirm pulse
-10. Observe OLED breathing pacer and dashboard alert
+1. Daisy-chain the sensors off the motherboard in this order: MPU6050 → APDS9960 → BMP180 → OLED, using the JST cables included in the kit.
+2. Wire the buzzer: GND to GND, 5V to VIN, SIG to GPIO 26. (Avoid GPIO 4 and GPIO 12 on this board — both are strapping pins and can prevent the ESP32 from booting if pulled high.)
+3. Open `panicsense/config.h` and set your WiFi SSID, password, and dashboard URL.
+4. In Arduino IDE, select **ESP32 Dev Module** as the board and **Huge APP (3MB No OTA / 1MB SPIFFS)** as the partition scheme. The sketch is too large for the default partition once BLE and WiFi are both compiled in.
+5. Install the libraries listed below, then upload. If the upload fails with a boot-mode error, hold BOOT, tap EN/RESET once while still holding BOOT, then start the upload and release BOOT once it says "Connecting."
+6. Start the dashboard with `npm install && npm run dev` inside the `dashboard` folder.
+7. Watch Serial Monitor at 115200 baud on first boot to confirm all four sensors initialize.
 
 ---
 
 ## Tech Stack
 
-- ESP32 (MYOSA Motherboard) — WiFi, BLE, I2C master
-- MPU6050 — 3-axis accelerometer and gyroscope (I2C 0x68)
-- APDS9960 — Gesture, proximity, ambient light sensor (I2C 0x39) — repurposed as PPG
-- BMP180 — Barometric pressure and temperature (I2C 0x77)
-- SSD1306 — 0.96" OLED display 128x64 (I2C 0x3C)
-- Active Buzzer — GPIO 26, driven via tone()
-- Arduino C++ — Firmware state machine, all sensor logic
-- React + Next.js — Real-time dashboard frontend
-- Node.js — Dashboard backend receiving HTTP POST alerts
-- SPIFFS — On-device episode log storage
-- NTPClient — Real-time epoch timestamp sync (IST)
-- ArduinoJson — JSON payload construction
-- Gemini API — Optional AI-enriched alert message to trusted contact
+- MYOSA ESP32 motherboard — WiFi, BLE, I2C
+- MPU6050 — tremor detection
+- APDS9960 — gesture override and repurposed pulse sensing
+- BMP180 — pressure and temperature logging
+- SSD1306 OLED — display and breathing pacer
+- Active buzzer on GPIO 26
+- Arduino C++ firmware
+- React + Next.js dashboard
+- SPIFFS for on-device episode storage
+- NTP for real timestamps
+- Gemini API for optional message enrichment
 
 ---
 
-## Requirements / Installation
-
-### Arduino IDE Libraries
-
-Install via Tools → Manage Libraries:
+## Libraries
 
 ```
 Adafruit SSD1306
@@ -142,39 +132,19 @@ Adafruit MPU6050
 Adafruit Unified Sensor
 Adafruit BMP085 Unified
 SparkFun APDS9960 RGB and Gesture Sensor
-NTPClient (by Fabrice Weinberg)
-ArduinoJson (by Benoit Blanchon)
+NTPClient (Fabrice Weinberg)
+ArduinoJson (Benoit Blanchon)
 ```
-
-### Board Settings
-
-```
-Board:           ESP32 Dev Module
-Partition Scheme: Huge APP (3MB No OTA / 1MB SPIFFS)
-Upload Speed:    921600
-Port:            Your COM port
-```
-
-### Dashboard Setup
-
-```bash
-cd dashboard
-npm install
-npm run dev
-```
-
-Update `DASHBOARD_URL` in `panicsense/config.h` to point to your dashboard server IP.
-
-### Firmware Upload
-
-Hold BOOT button on MYOSA board, click Upload in Arduino IDE, wait for "Connecting...", release BOOT, wait for "Done uploading".
 
 ---
 
-## License
+## A Note on Accuracy
 
-Open-source educational project. Submitted for IEEE MYOSA International Event 6.0 — IEEE Sensors Conference 2026.
+The pulse reading through the APDS9960 is experimental. It's a real physical technique, but this isn't the sensor anyone would choose for it if biometric accuracy were the goal. We're upfront about that here and in the firmware comments. PanicSense is a prototype and a class project, not a medical device, and nothing in it should be read as a clinical claim.
 
-Team MANDI MASALA — St. Joseph's College of Engineering and Technology, Palai, Kerala, India.
+---
 
-Note: APDS9960 PPG repurposing is experimental and not medical grade. PanicSense is not a medical device.
+## Team
+
+MANDI MASALA — St. Joseph's College of Engineering and Technology, Palai, Kerala
+IEEE MYOSA International Event 6.0, IEEE Sensors Conference 2026
