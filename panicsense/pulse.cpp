@@ -55,14 +55,14 @@ bool pulseInit(SparkFun_APDS9960 &apds) {
 void setAPDSMode(SparkFun_APDS9960 &apds, bool gestureMode) {
   if (gestureMode) {
     // Switch to gesture mode for IDLE / SOS override detection
-    apds.enableProximitySensor(false);
+    apds.disableProximitySensor();
     apds.enableGestureSensor(true);
     Serial.println(F("[PULSE] APDS9960 → GESTURE mode"));
   } else {
     // Switch to proximity mode for pulse detection
     // Use MAXIMUM sensitivity for PPG: 100mA LED + 8X gain
-    apds.enableGestureSensor(false);
-    apds.enableProximitySensor(true);
+    apds.disableGestureSensor();
+    apds.enableProximitySensor(false); // false = no interrupts for pulse reading
     apds.setProximityGain(PGAIN_8X);
     apds.setLEDDrive(LED_DRIVE_100MA);
     Serial.println(F("[PULSE] APDS9960 → PROXIMITY mode (100mA, 8X gain)"));
