@@ -95,6 +95,39 @@ Pulse confirmation is the rougher edge. The APDS9960 isn't a real PPG sensor, an
 
 ---
 
+## Repo Structure
+
+```
+panicsense-myosa/
+├── panicsense-myosa.md      # this file
+├── panicsense-cover.jpg     # cover image
+├── panicsense-demo.mp4      # demo video
+├── assets/                  # all photos used above
+│   ├── photo-01-full-setup.jpg
+│   ├── photo-02-oled-idle.jpg
+│   ├── photo-03-oled-boot.jpg
+│   ├── photo-04-oled-cooldown.jpg
+│   ├── photo-05-oled-breathing.jpg
+│   ├── photo-06-oled-confirming.jpg
+│   ├── photo-07-pulse-detection.jpg
+│   └── photo-08-dashboard.jpg
+├── panicsense/               # ESP32 firmware (Arduino)
+│   ├── panicsense.ino        # state machine, setup(), loop()
+│   ├── config.h              # pins, thresholds, WiFi/dashboard config
+│   ├── tremor.h / tremor.cpp     # MPU6050 tremor detection
+│   ├── pulse.h / pulse.cpp       # APDS9960 pulse + gesture logic
+│   ├── breathing.h / breathing.cpp  # box breathing pacer
+│   ├── display.h / display.cpp      # OLED screens for all states
+│   └── alerts.h / alerts.cpp        # WiFi POST, BLE fallback, SPIFFS, NTP
+└── dashboard/                # React (Next.js) live dashboard
+    ├── app/                  # pages and API routes
+    ├── public/
+    ├── package.json
+    └── next.config.ts
+```
+
+---
+
 ## Setting It Up
 
 1. Daisy-chain the sensors off the motherboard in this order: MPU6050 → APDS9960 → BMP180 → OLED, using the JST cables included in the kit.
