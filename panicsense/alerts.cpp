@@ -191,9 +191,14 @@ void alertsBLESend(const String &payload) {
  */
 bool alertsSendHTTP(const String &payload) {
   if (!alertsWiFiConnected()) {
-    Serial.println(F("[ALERTS] WiFi not connected — falling back to BLE"));
-    alertsBLESend(payload);
-    return false;
+    Serial.println(F("[ALERTS] WiFi not connected — attempting to reconnect..."));
+    if (!alertsWiFiConnect()) {
+      Serial.println(F("[ALERTS] Reconnect failed — falling back to BLE"));
+      alertsBLESend(payload);
+      return false;
+    }
+    // If it connected successfully here, ensure NTP is initialized
+    alertsNTPInit();
   }
 
   Serial.printf("[ALERTS] Free Heap: %d, Max Block: %d\n", ESP.getFreeHeap(), ESP.getMaxAllocHeap());
