@@ -77,8 +77,7 @@ const int   PULSE_MAX_RETRIES        = 1;    // retry once on quality fail
 const int   PULSE_MIN_PROXIMITY      = 100;  // minimum proximity value to ensure a finger is actually on the sensor
 
 // ─── Episode Confirmation ──────────────────────────────
-const int   ELEVATED_BPM           = 60;    // BPM threshold to confirm episode (lowered for testing — raise to 100 for production)
-const unsigned long CONFIRM_WINDOW_MS = 20000; // 20s confirmation window
+const unsigned long CONFIRM_WINDOW_MS = 10000; // 10s hold-to-confirm countdown
 
 // ─── Breathing Pacer ───────────────────────────────────
 const unsigned long BREATH_INHALE_MS  = 4000; // 4s inhale

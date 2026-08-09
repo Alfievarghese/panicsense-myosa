@@ -427,12 +427,13 @@ void updatePulseDisplayCallback() {
  * handleConfirming
  * ----------------
  * CONFIRMING state handler.
- * - Runs pulse detection on APDS9960 proximity data.
- * - Shows countdown progress bar on OLED.
- * - 20-second window to confirm episode via pulse or gesture.
+ * - Shows a 10-second countdown on OLED.
+ * - Runs pulse measurement in background to capture BPM data.
+ * - Auto-confirms episode after countdown completes.
+ * - BPM is NOT used as a gate — episode confirms regardless.
+ * - Gesture swipe can also confirm early.
  * Transitions:
- *   → EPISODE_ACTIVE: if BPM > ELEVATED_BPM or gesture swipe detected
- *   → IDLE: if 20s window expires without confirmation (false alarm)
+ *   → EPISODE_ACTIVE: after countdown completes (auto) or gesture swipe
  */
 void handleConfirming(unsigned long now) {
   // ─── Entry logic ─────────────────────────────────────
@@ -445,100 +446,60 @@ void handleConfirming(unsigned long now) {
     switchedToGesture = false;
   }
 
-  // ─── Check timeout ──────────────────────────────────
+  // ─── Check if countdown complete → AUTO-CONFIRM ─────
   unsigned long elapsed = now - confirmWindowStart;
   if (elapsed >= CONFIRM_WINDOW_MS) {
-    // Timeout — false alarm
-    Serial.println(
-        F("[CONFIRMING] Window expired — no confirmation, false alarm"));
-    if (oledReady) {
-      displayFalseAlarm(oled);
-    }
-    falseAlarmDisplayEnd = now + FALSE_ALARM_DISPLAY_MS;
-
-    if (apdsReady) {
-      setAPDSMode(apds, true); // Back to gesture mode
-    }
-    tremorReset();
-    currentState = IDLE;
+    Serial.println(F("[CONFIRMING] Countdown complete → EPISODE_ACTIVE"));
+    episodeBpm = measuredBpm; // Use whatever BPM was measured (may be 0)
+    episodeTremorDuration = getTremorDurationMs();
+    displayTransition(oled);
+    currentState = EPISODE_ACTIVE;
     return;
   }
 
-  // ─── Update OLED with countdown (when not checking pulse) ──
+  // ─── Update OLED with countdown ─────────────────────
   unsigned long remaining = CONFIRM_WINDOW_MS - elapsed;
   if (oledReady && !pulseCheckStarted) {
     displayConfirming(oled, remaining, CONFIRM_WINDOW_MS);
   }
 
-  // ─── Run pulse measurement (blocking ~10s) ──────────
-  // Only start if we haven't started yet
+  // ─── Run pulse measurement (best effort, non-gating) ─
+  // We still attempt to measure BPM so we can include real
+  // sensor data in the alert. But the result doesn't gate
+  // episode confirmation — it always auto-confirms.
   if (!pulseCheckStarted && !pulseCheckDone) {
     pulseCheckStarted = true;
-    Serial.println(F("[CONFIRMING] Starting pulse measurement..."));
+    Serial.println(F("[CONFIRMING] Starting pulse measurement (data capture)..."));
 
     float bpm = 0.0f;
     PulseResult result = measurePulse(apds, &bpm, updatePulseDisplayCallback);
 
     if (result == PULSE_OK) {
       measuredBpm = bpm;
-      Serial.print(F("[CONFIRMING] BPM measured: "));
+      Serial.print(F("[CONFIRMING] BPM captured: "));
       Serial.println(bpm, 1);
-
-      if (bpm > (float)ELEVATED_BPM) {
-        // Elevated pulse confirmed — episode is real
-        Serial.println(
-            F("[CONFIRMING] Elevated BPM confirmed → EPISODE_ACTIVE"));
-        episodeBpm = bpm;
-        episodeTremorDuration = getTremorDurationMs();
-        displayTransition(oled);
-        currentState = EPISODE_ACTIVE;
-        return;
-      } else {
-        // Pulse detected but not elevated — continue waiting
-        Serial.println(
-            F("[CONFIRMING] BPM normal — waiting for timeout or gesture"));
-        pulseCheckDone = true;
-      }
-    } else if (result == PULSE_QUALITY_FAIL &&
-               pulseRetryCount < PULSE_MAX_RETRIES) {
-      // Signal too noisy — retry once
-      pulseRetryCount++;
-      pulseCheckStarted = false; // Allow re-entry
-      Serial.println(F("[CONFIRMING] Pulse quality fail — retrying"));
-      if (oledReady) {
-        displayPulseRetry(oled);
-      }
-      // Brief pause before retry (using millis-aware approach)
-      // The next loop iteration will re-enter and start pulse measurement again
-      return;
     } else {
-      // Quality fail with no retries left, or sensor error
-      Serial.println(F("[CONFIRMING] Pulse detection failed — waiting for "
-                       "gesture or timeout"));
-      pulseCheckDone = true;
+      Serial.println(F("[CONFIRMING] Pulse read failed — BPM will be 0 in alert"));
+      measuredBpm = 0.0f;
+    }
+    pulseCheckDone = true;
+
+    // Switch to gesture mode for remainder of countdown
+    if (apdsReady) {
+      setAPDSMode(apds, true);
     }
   }
 
-  // ─── After pulse check, listen for gesture swipe ────
-  // Switch briefly to gesture mode to check for SOS swipe
+  // ─── Listen for gesture swipe (early confirm) ───────
   if (pulseCheckDone && apdsReady) {
-    // Switch to gesture mode permanently for the remainder of the window
-    if (!switchedToGesture) {
-      setAPDSMode(apds, true); // switch to gesture
-      switchedToGesture = true;
-      delay(100); // give chip 100ms to switch and settle
-    }
-
-    // Only check gesture swipe every 100ms to avoid locking the loop
     static unsigned long lastGestureCheck = 0;
     if (now - lastGestureCheck >= 100) {
       lastGestureCheck = now;
       if (checkGestureSwipe(apds)) {
-        Serial.println(F("[CONFIRMING] Gesture swipe → EPISODE_ACTIVE"));
+        Serial.println(F("[CONFIRMING] Gesture swipe → EPISODE_ACTIVE (early)"));
         episodeTrigger = "manual";
         episodeBpm = measuredBpm;
         episodeTremorDuration = getTremorDurationMs();
-        switchedToGesture = false; // reset for next time
         displayTransition(oled);
         currentState = EPISODE_ACTIVE;
         return;
@@ -546,11 +507,12 @@ void handleConfirming(unsigned long now) {
     }
 
     // Update display with remaining time
-    unsigned long nowAfter = millis();
-    unsigned long elapsedAfter = nowAfter - confirmWindowStart;
-    if (elapsedAfter < CONFIRM_WINDOW_MS && oledReady) {
-      displayConfirming(oled, CONFIRM_WINDOW_MS - elapsedAfter,
-                        CONFIRM_WINDOW_MS);
+    if (oledReady) {
+      unsigned long nowAfter = millis();
+      unsigned long elapsedAfter = nowAfter - confirmWindowStart;
+      if (elapsedAfter < CONFIRM_WINDOW_MS) {
+        displayConfirming(oled, CONFIRM_WINDOW_MS - elapsedAfter, CONFIRM_WINDOW_MS);
+      }
     }
   }
 }
