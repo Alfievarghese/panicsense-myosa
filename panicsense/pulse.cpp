@@ -60,12 +60,22 @@ void setAPDSMode(SparkFun_APDS9960 &apds, bool gestureMode) {
     Serial.println(F("[PULSE] APDS9960 → GESTURE mode"));
   } else {
     // Switch to proximity mode for pulse detection
-    // Use MAXIMUM sensitivity for PPG: 100mA LED + 8X gain
+    // CRITICAL: enableGestureSensor() corrupts the PPULSE register 
+    // (sets it to DEFAULT_GESTURE_PPULSE) and sets LED_BOOST to 300%.
+    // enableProximitySensor() does NOT reset these, causing the sensor
+    // to saturate and return near-zero values even with a finger on it.
+    // 
+    // Fix: fully re-init the sensor to restore all registers to defaults,
+    // then enable proximity with our desired gain/drive settings.
     apds.disableGestureSensor();
-    apds.enableProximitySensor(false); // false = no interrupts for pulse reading
-    apds.setProximityGain(PGAIN_8X);
+    apds.init();  // Reset ALL registers to clean defaults (including PPULSE, CONFIG2)
+    delay(50);    // Allow sensor to settle after full re-init
+    
+    apds.enableProximitySensor(false); // false = no interrupts
+    apds.setProximityGain(PGAIN_4X);   // 4X gain (8X can saturate on some boards)
     apds.setLEDDrive(LED_DRIVE_100MA);
-    Serial.println(F("[PULSE] APDS9960 → PROXIMITY mode (100mA, 8X gain)"));
+    delay(50);    // Allow proximity engine to settle
+    Serial.println(F("[PULSE] APDS9960 → PROXIMITY mode (100mA, 4X gain, clean init)"));
   }
 }
 
@@ -181,6 +191,17 @@ PulseResult measurePulse(SparkFun_APDS9960 &apds, float *bpmOut, PulseCallback c
 
   int sampleCount = 0;
   unsigned long sampleStart = millis();
+
+  // ─── Diagnostic: Print first 5 raw proximity readings ──
+  Serial.print(F("[PULSE] First 5 raw proximity readings: "));
+  for (int d = 0; d < 5; d++) {
+    uint8_t diagVal = 0;
+    apds.readProximity(diagVal);
+    Serial.print(diagVal);
+    Serial.print(F(" "));
+    delay(20);
+  }
+  Serial.println();
 
   for (int i = 0; i < PULSE_SAMPLE_COUNT; i++) {
     unsigned long loopStart = millis();
