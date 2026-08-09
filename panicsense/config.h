@@ -23,7 +23,7 @@
 // ─── WiFi ──────────────────────────────────────────────
 static const char* WIFI_SSID = "Alfie";
 static const char* WIFI_PASS = "12345678";
-const unsigned long WIFI_CONNECT_TIMEOUT_MS = 10000; // 10s boot timeout
+const unsigned long WIFI_CONNECT_TIMEOUT_MS = 20000; // 20s boot timeout
 
 // ─── Dashboard ─────────────────────────────────────────
 static const char* DASHBOARD_URL = "https://dashboard-nu-umber-40.vercel.app/api/alert";
